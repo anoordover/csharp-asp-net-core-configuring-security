@@ -9,11 +9,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace ConferenceTracker
 {
     public class Startup
     {
+        private readonly string _allowedOrigins = "_allowedOrigins";
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -33,16 +35,35 @@ namespace ConferenceTracker
             services.AddRazorPages();
             services.AddTransient<IPresentationRepository, PresentationRepository>();
             services.AddTransient<ISpeakerRepository, SpeakerRepository>();
+            services.AddCors(options =>
+            {
+                options.AddPolicy(_allowedOrigins,
+                    builder => builder.WithOrigins("http://pluralsight.com"));
+            });
         }
 
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {            
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
+            ILogger<Startup> logger)
+        {
+            if (!env.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Home/Error");
+                app.UseHsts();
+            }
+            else
+            {
+                logger.LogInformation("Environment is in development");
+                app.UseDeveloperExceptionPage();
+            }
+            
             using (var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
             using (var context = scope.ServiceProvider.GetService<ApplicationDbContext>())
                 context.Database.EnsureCreated();
-
+            
+            app.UseCors(_allowedOrigins);
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
