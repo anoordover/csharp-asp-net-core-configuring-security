@@ -56,6 +56,7 @@ namespace ConferenceTracker
             {
                 logger.LogInformation("Environment is in development");
                 app.UseDeveloperExceptionPage();
+                app.UseDatabaseErrorPage();
             }
             
             using (var scope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
